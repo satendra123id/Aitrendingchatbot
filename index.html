@@ -34,18 +34,26 @@
             gap: 10px;
         }
 
-        /* Settings Panel for API Key */
+        /* Settings Panel for API Key and Model */
         #settings-panel {
             background-color: var(--panel-bg);
             border: 1px solid var(--neon-blue);
             border-radius: 8px;
             padding: 15px;
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
         }
 
-        #settings-panel input {
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        #settings-panel input, #settings-panel select {
             flex-grow: 1;
             padding: 8px 12px;
             background-color: #0d0d0d;
@@ -56,7 +64,7 @@
             outline: none;
         }
 
-        #settings-panel input:focus {
+        #settings-panel input:focus, #settings-panel select:focus {
             border-color: var(--neon-blue);
         }
 
@@ -199,14 +207,24 @@
 
     <div id="app-container">
         <div id="settings-panel">
-            <span style="display:flex; align-items:center; font-weight:bold;">🔑 API Key:</span>
-            <input type="password" id="api-key-input" placeholder="Paste your Gemini API Key here...">
+            <div class="setting-item">
+                <strong>🔑 API Key:</strong>
+                <input type="password" id="api-key-input" placeholder="Paste API Key...">
+            </div>
+            <div class="setting-item">
+                <strong>🧠 Model:</strong>
+                <select id="model-select">
+                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest (Recommended)</option>
+                    <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro (Best for Charts)</option>
+                    <option value="gemini-pro-vision">Gemini Pro Vision (Legacy)</option>
+                </select>
+            </div>
         </div>
 
         <div id="chat-container">
             <div id="header">SR india - AI Trading Desk</div>
             <div id="chat-box">
-                <div class="message ai-message">System Active. Sabse pehle upar apni API Key daalein. Fir market trends ya chart analysis ke liye image upload karein.</div>
+                <div class="message ai-message">System Active. API Key daalein aur Model select karein. Agar ek model error de, toh doosra try karein.</div>
             </div>
             <div id="input-area">
                 <label for="image-input" class="file-upload-label" title="Upload Chart Screenshot">📁</label>
@@ -222,6 +240,7 @@
         const textInput = document.getElementById('text-input');
         const imageInput = document.getElementById('image-input');
         const apiKeyInput = document.getElementById('api-key-input');
+        const modelSelect = document.getElementById('model-select');
 
         function handleEnter(event) {
             if (event.key === 'Enter') {
@@ -231,10 +250,10 @@
 
         async function sendMessage() {
             const apiKey = apiKeyInput.value.trim();
+            const selectedModel = modelSelect.value;
             const text = textInput.value.trim();
             const file = imageInput.files[0];
 
-            // Check if API key is entered
             if (!apiKey) {
                 displayMessage("<span class='error-text'>Access Denied: Kripya pehle upar apna API key daalein.</span>", 'ai');
                 return;
@@ -242,17 +261,17 @@
 
             if (!text && !file) return;
 
-            // API URL dynamically formatted with the user's input key
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            // API URL dynamically formatted with selected model and key
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
 
             // Display User Message
             displayMessage(text, 'user', file);
             textInput.value = '';
-            imageInput.value = ''; // Reset file input
+            imageInput.value = ''; 
 
             // Show Loading
             const loadingId = 'loading-' + Date.now();
-            const loadingHtml = `<div class="message loading" id="${loadingId}">Processing Market Data...</div>`;
+            const loadingHtml = `<div class="message loading" id="${loadingId}">Analyzing Data via ${selectedModel}...</div>`;
             chatBox.insertAdjacentHTML('beforeend', loadingHtml);
             chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -265,7 +284,7 @@
 
                 // Add text to prompt
                 if (text) {
-                    requestBody.contents[0].parts.push({ text: text + " (Provide detailed trading/trend analysis based on this query.)" });
+                    requestBody.contents[0].parts.push({ text: text + " (Analyze this from a trading/market perspective)" });
                 } else if (file) {
                     requestBody.contents[0].parts.push({ text: "Act as an expert trader. Analyze this chart screenshot and explain the trends, support/resistance, and market behavior." });
                 }
@@ -283,7 +302,6 @@
                     });
                 }
 
-                // Call the API
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
@@ -296,7 +314,7 @@
                 document.getElementById(loadingId).remove();
 
                 if (data.error) {
-                    displayMessage(`<span class='error-text'>Error: ${data.error.message}</span>`, 'ai');
+                    displayMessage(`<span class='error-text'>API Error: ${data.error.message} <br><br>Tip: Try selecting a different model from the top dropdown.</span>`, 'ai');
                 } else {
                     const aiResponseText = data.candidates[0].content.parts[0].text;
                     displayMessage(aiResponseText, 'ai');
@@ -304,7 +322,7 @@
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
-                displayMessage("<span class='error-text'>Connection failed. Check your internet connection or verify if the API key is valid.</span>", 'ai');
+                displayMessage("<span class='error-text'>Connection failed. Please check your internet connection and API key.</span>", 'ai');
             }
         }
 
@@ -312,9 +330,7 @@
             const div = document.createElement('div');
             div.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
             
-            // Format AI text (basic markdown replacement for bold)
             let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            // Format newlines
             formattedText = formattedText.replace(/\n/g, '<br>');
 
             let content = text ? formattedText : '';
