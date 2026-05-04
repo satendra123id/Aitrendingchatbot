@@ -11,6 +11,7 @@
             --neon-blue: #00e5ff;
             --text-color: #e0e0e0;
             --alert-color: #ff0055;
+            --success-color: #00ffcc;
         }
 
         body {
@@ -34,38 +35,32 @@
             gap: 10px;
         }
 
-        /* Settings Panel for API Key and Model */
+        /* Settings Panel for API Key */
         #settings-panel {
             background-color: var(--panel-bg);
             border: 1px solid var(--neon-blue);
             border-radius: 8px;
             padding: 15px;
             display: flex;
-            flex-wrap: wrap;
+            align-items: center;
             gap: 10px;
             box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
         }
 
-        .setting-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        #settings-panel input {
             flex-grow: 1;
-        }
-
-        #settings-panel input, #settings-panel select {
-            flex-grow: 1;
-            padding: 8px 12px;
+            padding: 10px;
             background-color: #0d0d0d;
             border: 1px solid #333;
-            color: var(--neon-blue);
+            color: var(--success-color);
             border-radius: 5px;
             font-family: inherit;
             outline: none;
+            letter-spacing: 1px;
         }
 
-        #settings-panel input:focus, #settings-panel select:focus {
-            border-color: var(--neon-blue);
+        #settings-panel input:focus {
+            border-color: var(--success-color);
         }
 
         /* Chat Container */
@@ -85,11 +80,12 @@
             color: var(--neon-blue);
             padding: 15px;
             text-align: center;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             font-weight: bold;
             border-bottom: 1px solid var(--neon-blue);
-            text-shadow: 0 0 5px var(--neon-blue);
+            text-shadow: 0 0 8px var(--neon-blue);
             letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         #chat-box {
@@ -118,7 +114,7 @@
 
         .ai-message {
             background-color: #2a2a2a;
-            border-right: 3px solid var(--alert-color);
+            border-right: 3px solid var(--success-color);
             align-self: flex-start;
         }
 
@@ -156,13 +152,14 @@
             background-color: #1a1a1a;
             border: 1px solid var(--neon-blue);
             color: var(--neon-blue);
-            padding: 10px;
+            padding: 10px 15px;
             border-radius: 5px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: 0.3s;
+            font-size: 1.2rem;
         }
 
         .file-upload-label:hover {
@@ -184,10 +181,11 @@
             font-weight: bold;
             font-family: inherit;
             transition: 0.3s;
+            text-transform: uppercase;
         }
 
         button:hover {
-            box-shadow: 0 0 10px var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
             background-color: #fff;
         }
 
@@ -207,29 +205,19 @@
 
     <div id="app-container">
         <div id="settings-panel">
-            <div class="setting-item">
-                <strong>🔑 API Key:</strong>
-                <input type="password" id="api-key-input" placeholder="Paste API Key...">
-            </div>
-            <div class="setting-item">
-                <strong>🧠 Model:</strong>
-                <select id="model-select">
-                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash Latest (Recommended)</option>
-                    <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro (Best for Charts)</option>
-                    <option value="gemini-pro-vision">Gemini Pro Vision (Legacy)</option>
-                </select>
-            </div>
+            <strong>🔑 API Key:</strong>
+            <input type="password" id="api-key-input" placeholder="Paste your new Gemini API Key here...">
         </div>
 
         <div id="chat-container">
-            <div id="header">SR india - AI Trading Desk</div>
+            <div id="header">SR india - Pro AI Trading Desk</div>
             <div id="chat-box">
-                <div class="message ai-message">System Active. API Key daalein aur Model select karein. Agar ek model error de, toh doosra try karein.</div>
+                <div class="message ai-message">System Online. Model: <strong>Gemini 1.5 Pro</strong> (Stable). Upar nayi API key daalein aur market chart upload karein.</div>
             </div>
             <div id="input-area">
-                <label for="image-input" class="file-upload-label" title="Upload Chart Screenshot">📁</label>
+                <label for="image-input" class="file-upload-label" title="Upload Trading Chart Screenshot">📁</label>
                 <input type="file" id="image-input" accept="image/*">
-                <input type="text" id="text-input" placeholder="Analyze this trend..." onkeypress="handleEnter(event)">
+                <input type="text" id="text-input" placeholder="Type query or ask to analyze trend..." onkeypress="handleEnter(event)">
                 <button onclick="sendMessage()">Send</button>
             </div>
         </div>
@@ -240,7 +228,6 @@
         const textInput = document.getElementById('text-input');
         const imageInput = document.getElementById('image-input');
         const apiKeyInput = document.getElementById('api-key-input');
-        const modelSelect = document.getElementById('model-select');
 
         function handleEnter(event) {
             if (event.key === 'Enter') {
@@ -250,28 +237,27 @@
 
         async function sendMessage() {
             const apiKey = apiKeyInput.value.trim();
-            const selectedModel = modelSelect.value;
             const text = textInput.value.trim();
             const file = imageInput.files[0];
 
             if (!apiKey) {
-                displayMessage("<span class='error-text'>Access Denied: Kripya pehle upar apna API key daalein.</span>", 'ai');
+                displayMessage("<span class='error-text'>Error: Please enter your API Key at the top first.</span>", 'ai');
                 return;
             }
 
             if (!text && !file) return;
 
-            // API URL dynamically formatted with selected model and key
-            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+            // FIX: Using the most stable and powerful model explicitly (gemini-1.5-pro)
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
 
             // Display User Message
             displayMessage(text, 'user', file);
             textInput.value = '';
             imageInput.value = ''; 
 
-            // Show Loading
+            // Show Loading Indicator
             const loadingId = 'loading-' + Date.now();
-            const loadingHtml = `<div class="message loading" id="${loadingId}">Analyzing Data via ${selectedModel}...</div>`;
+            const loadingHtml = `<div class="message loading" id="${loadingId}">Analyzing Data with Gemini Pro Engine...</div>`;
             chatBox.insertAdjacentHTML('beforeend', loadingHtml);
             chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -282,14 +268,14 @@
                     }]
                 };
 
-                // Add text to prompt
+                // Formulate the AI prompt
                 if (text) {
-                    requestBody.contents[0].parts.push({ text: text + " (Analyze this from a trading/market perspective)" });
+                    requestBody.contents[0].parts.push({ text: text + " (Analyze this from a market/trading perspective if applicable)" });
                 } else if (file) {
-                    requestBody.contents[0].parts.push({ text: "Act as an expert trader. Analyze this chart screenshot and explain the trends, support/resistance, and market behavior." });
+                    requestBody.contents[0].parts.push({ text: "Act as an expert trader. Analyze this chart screenshot. Tell me about the trends, possible support/resistance levels, and market behavior." });
                 }
 
-                // Add image to prompt
+                // Attach Image Data
                 if (file) {
                     const base64Image = await convertToBase64(file);
                     const base64Data = base64Image.split(',')[1]; 
@@ -302,6 +288,7 @@
                     });
                 }
 
+                // Make the API Request
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
@@ -313,8 +300,9 @@
                 const data = await response.json();
                 document.getElementById(loadingId).remove();
 
+                // Handle AI Response or Error
                 if (data.error) {
-                    displayMessage(`<span class='error-text'>API Error: ${data.error.message} <br><br>Tip: Try selecting a different model from the top dropdown.</span>`, 'ai');
+                    displayMessage(`<span class='error-text'>API Error: ${data.error.message}</span>`, 'ai');
                 } else {
                     const aiResponseText = data.candidates[0].content.parts[0].text;
                     displayMessage(aiResponseText, 'ai');
@@ -322,22 +310,26 @@
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
-                displayMessage("<span class='error-text'>Connection failed. Please check your internet connection and API key.</span>", 'ai');
+                displayMessage("<span class='error-text'>Network Error. Check your internet connection.</span>", 'ai');
             }
         }
 
+        // Function to display messages in the chat UI
         function displayMessage(text, sender, file = null) {
             const div = document.createElement('div');
             div.classList.add('message', sender === 'user' ? 'user-message' : 'ai-message');
             
+            // Format markdown text properly
             let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
             formattedText = formattedText.replace(/\n/g, '<br>');
 
             let content = text ? formattedText : '';
 
+            // Render uploaded image
             if (file) {
                 const imgURL = URL.createObjectURL(file);
-                content += `<br><img src="${imgURL}" class="chat-image" alt="Uploaded Chart">`;
+                content += `<br><img src="${imgURL}" class="chat-image" alt="Uploaded Market Chart">`;
             }
 
             div.innerHTML = content;
@@ -345,6 +337,7 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        // Helper function to process the image
         function convertToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
